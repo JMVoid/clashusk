@@ -191,7 +191,7 @@ func UnmarshalRawConfig(buf []byte) (*RawConfig, error) {
 	if err := yaml.Unmarshal(buf, rawCfg); err != nil {
 		return nil, err
 	}
-
+	JsonRawConfig(buf)
 	return rawCfg, nil
 }
 

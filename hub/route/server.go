@@ -3,6 +3,7 @@ package route
 import (
 	"bytes"
 	"encoding/json"
+	"github.com/Dreamacro/clash/config"
 	"net"
 	"net/http"
 	"strings"
@@ -65,6 +66,7 @@ func Start(addr string, secret string) {
 		r.Get("/logs", getLogs)
 		r.Get("/traffic", traffic)
 		r.Get("/version", version)
+		r.Get("/rawconfig", rawConfig)
 		r.Mount("/configs", configRouter())
 		r.Mount("/proxies", proxyRouter())
 		r.Mount("/rules", ruleRouter())
@@ -239,5 +241,14 @@ func getLogs(w http.ResponseWriter, r *http.Request) {
 }
 
 func version(w http.ResponseWriter, r *http.Request) {
-	render.JSON(w, r, render.M{"version": C.Version})
+	render.JSON(w, r, render.M{"version": C.Version, "husk": true})
 }
+
+func rawConfig(w http.ResponseWriter, r *http.Request)  {
+	render.JSON(w, r, config.GetRawObject())
+}
+
+//func rawConfig(w http.ResponseWriter, r *http.Request)  {
+//	render.PlainText(w, r, config.GetRawConfig())
+//}
+
