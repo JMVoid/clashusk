@@ -5,7 +5,6 @@ import (
 )
 
 var (
-	GlobalJsonBody = ""
 	GlobalObject interface{}
 )
 
