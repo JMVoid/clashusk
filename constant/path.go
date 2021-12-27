@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 )
 
-const Name = "clash"
+const Name = "clashusk"
 
 // Path is used to get the configuration path
 var Path = func() *path {
