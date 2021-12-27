@@ -17,6 +17,7 @@ type Selector struct {
 	single     *singledo.Single
 	selected   string
 	providers  []provider.ProxyProvider
+	useFilter  *Filter
 }
 
 // DialContext implements C.ProxyAdapter
@@ -49,7 +50,7 @@ func (s *Selector) SupportUDP() bool {
 // MarshalJSON implements C.ProxyAdapter
 func (s *Selector) MarshalJSON() ([]byte, error) {
 	var all []string
-	for _, proxy := range getProvidersProxies(s.providers, false) {
+	for _, proxy := range getProvidersProxies(s.providers, false, s.useFilter) {
 		all = append(all, proxy.Name())
 	}
 
@@ -65,7 +66,7 @@ func (s *Selector) Now() string {
 }
 
 func (s *Selector) Set(name string) error {
-	for _, proxy := range getProvidersProxies(s.providers, false) {
+	for _, proxy := range getProvidersProxies(s.providers, false, s.useFilter) {
 		if proxy.Name() == name {
 			s.selected = name
 			s.single.Reset()
@@ -83,7 +84,7 @@ func (s *Selector) Unwrap(metadata *C.Metadata) C.Proxy {
 
 func (s *Selector) selectedProxy(touch bool) C.Proxy {
 	elm, _, _ := s.single.Do(func() (interface{}, error) {
-		proxies := getProvidersProxies(s.providers, touch)
+		proxies := getProvidersProxies(s.providers, touch, s.useFilter)
 		for _, proxy := range proxies {
 			if proxy.Name() == s.selected {
 				return proxy, nil
@@ -96,7 +97,7 @@ func (s *Selector) selectedProxy(touch bool) C.Proxy {
 	return elm.(C.Proxy)
 }
 
-func NewSelector(options *GroupCommonOption, providers []provider.ProxyProvider) *Selector {
+func NewSelector(options *GroupCommonOption, providers []provider.ProxyProvider, useFilter *Filter) *Selector {
 	selected := providers[0].Proxies()[0].Name()
 	return &Selector{
 		Base:       outbound.NewBase(options.Name, "", C.Selector, false),
@@ -104,5 +105,6 @@ func NewSelector(options *GroupCommonOption, providers []provider.ProxyProvider)
 		providers:  providers,
 		selected:   selected,
 		disableUDP: options.DisableUDP,
+		useFilter:  useFilter,
 	}
 }

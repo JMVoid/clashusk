@@ -27,6 +27,7 @@ type URLTest struct {
 	single     *singledo.Single
 	fastSingle *singledo.Single
 	providers  []provider.ProxyProvider
+	useFilter  *Filter
 }
 
 func (u *URLTest) Now() string {
@@ -58,7 +59,7 @@ func (u *URLTest) Unwrap(metadata *C.Metadata) C.Proxy {
 
 func (u *URLTest) proxies(touch bool) []C.Proxy {
 	elm, _, _ := u.single.Do(func() (interface{}, error) {
-		return getProvidersProxies(u.providers, touch), nil
+		return getProvidersProxies(u.providers, touch, u.useFilter), nil
 	})
 
 	return elm.([]C.Proxy)
@@ -133,13 +134,14 @@ func parseURLTestOption(config map[string]interface{}) []urlTestOption {
 	return opts
 }
 
-func NewURLTest(commonOptions *GroupCommonOption, providers []provider.ProxyProvider, options ...urlTestOption) *URLTest {
+func NewURLTest(commonOptions *GroupCommonOption, providers []provider.ProxyProvider, useFilter *Filter, options ...urlTestOption) *URLTest {
 	urlTest := &URLTest{
 		Base:       outbound.NewBase(commonOptions.Name, "", C.URLTest, false),
 		single:     singledo.NewSingle(defaultGetProxiesDuration),
 		fastSingle: singledo.NewSingle(time.Second * 10),
 		providers:  providers,
 		disableUDP: commonOptions.DisableUDP,
+		useFilter:  useFilter,
 	}
 
 	for _, option := range options {

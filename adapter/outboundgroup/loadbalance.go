@@ -24,6 +24,7 @@ type LoadBalance struct {
 	single     *singledo.Single
 	providers  []provider.ProxyProvider
 	strategyFn strategyFn
+	useFilter  *Filter
 }
 
 var errStrategy = errors.New("unsupported strategy")
@@ -141,7 +142,7 @@ func (lb *LoadBalance) Unwrap(metadata *C.Metadata) C.Proxy {
 
 func (lb *LoadBalance) proxies(touch bool) []C.Proxy {
 	elm, _, _ := lb.single.Do(func() (interface{}, error) {
-		return getProvidersProxies(lb.providers, touch), nil
+		return getProvidersProxies(lb.providers, touch, lb.useFilter), nil
 	})
 
 	return elm.([]C.Proxy)
@@ -159,7 +160,7 @@ func (lb *LoadBalance) MarshalJSON() ([]byte, error) {
 	})
 }
 
-func NewLoadBalance(options *GroupCommonOption, providers []provider.ProxyProvider, strategy string) (lb *LoadBalance, err error) {
+func NewLoadBalance(options *GroupCommonOption, providers []provider.ProxyProvider, strategy string, useFilter *Filter) (lb *LoadBalance, err error) {
 	var strategyFn strategyFn
 	switch strategy {
 	case "consistent-hashing":
@@ -175,5 +176,6 @@ func NewLoadBalance(options *GroupCommonOption, providers []provider.ProxyProvid
 		providers:  providers,
 		strategyFn: strategyFn,
 		disableUDP: options.DisableUDP,
+		useFilter:  useFilter,
 	}, nil
 }

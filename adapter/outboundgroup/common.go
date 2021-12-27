@@ -11,7 +11,7 @@ const (
 	defaultGetProxiesDuration = time.Second * 5
 )
 
-func getProvidersProxies(providers []provider.ProxyProvider, touch bool) []C.Proxy {
+func getProvidersProxies(providers []provider.ProxyProvider, touch bool, useFilter *Filter) []C.Proxy {
 	proxies := []C.Proxy{}
 	for _, provider := range providers {
 		if touch {
@@ -19,6 +19,9 @@ func getProvidersProxies(providers []provider.ProxyProvider, touch bool) []C.Pro
 		} else {
 			proxies = append(proxies, provider.Proxies()...)
 		}
+	}
+	if useFilter.IsFilterSet {
+		return useFilter.FilterProxiesByName(proxies)
 	}
 	return proxies
 }

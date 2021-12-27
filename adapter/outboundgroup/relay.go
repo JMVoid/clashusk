@@ -16,6 +16,7 @@ type Relay struct {
 	*outbound.Base
 	single    *singledo.Single
 	providers []provider.ProxyProvider
+	useFilter *Filter
 }
 
 // DialContext implements C.ProxyAdapter
@@ -80,7 +81,7 @@ func (r *Relay) MarshalJSON() ([]byte, error) {
 
 func (r *Relay) rawProxies(touch bool) []C.Proxy {
 	elm, _, _ := r.single.Do(func() (interface{}, error) {
-		return getProvidersProxies(r.providers, touch), nil
+		return getProvidersProxies(r.providers, touch, r.useFilter), nil
 	})
 
 	return elm.([]C.Proxy)
@@ -100,10 +101,11 @@ func (r *Relay) proxies(metadata *C.Metadata, touch bool) []C.Proxy {
 	return proxies
 }
 
-func NewRelay(options *GroupCommonOption, providers []provider.ProxyProvider) *Relay {
+func NewRelay(options *GroupCommonOption, providers []provider.ProxyProvider, useFilter *Filter) *Relay {
 	return &Relay{
 		Base:      outbound.NewBase(options.Name, "", C.Relay, false),
 		single:    singledo.NewSingle(defaultGetProxiesDuration),
 		providers: providers,
+		useFilter: useFilter,
 	}
 }

@@ -27,6 +27,7 @@ type GroupCommonOption struct {
 	Interval   int      `group:"interval,omitempty"`
 	Lazy       bool     `group:"lazy,omitempty"`
 	DisableUDP bool     `group:"disable-udp,omitempty"`
+	UseFilter  string   `group:"useFilter,omitempty"`
 }
 
 func ParseProxyGroup(config map[string]interface{}, proxyMap map[string]C.Proxy, providersMap map[string]types.ProxyProvider) (C.ProxyAdapter, error) {
@@ -35,6 +36,11 @@ func ParseProxyGroup(config map[string]interface{}, proxyMap map[string]C.Proxy,
 	groupOption := &GroupCommonOption{
 		Lazy: true,
 	}
+
+	useFilter := &Filter{
+		IsFilterSet: false,
+	}
+
 	if err := decoder.Decode(config, groupOption); err != nil {
 		return nil, errFormat
 	}
@@ -66,6 +72,13 @@ func ParseProxyGroup(config map[string]interface{}, proxyMap map[string]C.Proxy,
 			}
 
 			providers = append(providers, pd)
+			if len(groupOption.UseFilter) != 0 {
+				err := useFilter.SetExpr(groupOption.UseFilter)
+				if err != nil {
+					return nil, err
+				}
+			}
+
 		} else {
 			if _, ok := providersMap[groupName]; ok {
 				return nil, errDuplicateProvider
@@ -104,22 +117,28 @@ func ParseProxyGroup(config map[string]interface{}, proxyMap map[string]C.Proxy,
 			return nil, err
 		}
 		providers = append(providers, list...)
+		if len(groupOption.UseFilter) != 0 {
+			err := useFilter.SetExpr(groupOption.UseFilter)
+			if err != nil {
+				return nil, err
+			}
+		}
 	}
 
 	var group C.ProxyAdapter
 	switch groupOption.Type {
 	case "url-test":
 		opts := parseURLTestOption(config)
-		group = NewURLTest(groupOption, providers, opts...)
+		group = NewURLTest(groupOption, providers, useFilter, opts...)
 	case "select":
-		group = NewSelector(groupOption, providers)
+		group = NewSelector(groupOption, providers, useFilter)
 	case "fallback":
-		group = NewFallback(groupOption, providers)
+		group = NewFallback(groupOption, providers, useFilter)
 	case "load-balance":
 		strategy := parseStrategy(config)
-		return NewLoadBalance(groupOption, providers, strategy)
+		return NewLoadBalance(groupOption, providers, strategy, useFilter)
 	case "relay":
-		group = NewRelay(groupOption, providers)
+		group = NewRelay(groupOption, providers, useFilter)
 	default:
 		return nil, fmt.Errorf("%w: %s", errType, groupOption.Type)
 	}

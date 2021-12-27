@@ -372,6 +372,9 @@ func parseProxies(cfg *RawConfig) (proxies map[string]C.Proxy, providersMap map[
 			Name: "GLOBAL",
 		},
 		[]providerTypes.ProxyProvider{pd},
+		&outboundgroup.Filter{
+			IsFilterSet: false,
+		},
 	)
 	proxies["GLOBAL"] = adapter.NewProxy(global)
 	return proxies, providersMap, nil
