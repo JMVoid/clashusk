@@ -3,9 +3,11 @@ package outboundgroup
 import (
 	C "github.com/Dreamacro/clash/constant"
 	"regexp"
+	"sync"
 )
 
 type Filter struct {
+	mu          sync.Mutex
 	IsFilterSet bool
 	regExp      *regexp.Regexp
 }
@@ -21,6 +23,8 @@ func (f *Filter) FilterProxiesByName(proxies []C.Proxy) []C.Proxy {
 }
 
 func (f *Filter) SetExpr(expr string) error {
+	f.mu.Lock()
+	defer f.mu.Unlock()
 	reg, err := regexp.Compile(expr)
 	if err != nil {
 		f.IsFilterSet = false
