@@ -1,9 +1,7 @@
 package route
 
 import (
-	"net/http"
-	"path/filepath"
-
+	"fmt"
 	"github.com/Dreamacro/clash/component/resolver"
 	"github.com/Dreamacro/clash/config"
 	"github.com/Dreamacro/clash/constant"
@@ -11,9 +9,20 @@ import (
 	P "github.com/Dreamacro/clash/listener"
 	"github.com/Dreamacro/clash/log"
 	"github.com/Dreamacro/clash/tunnel"
-
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/render"
+	"io/ioutil"
+	"net/http"
+	"os"
+	"path/filepath"
+	"time"
+)
+
+const name = "clashusk-backup"
+
+var (
+	fileMode os.FileMode = 0666
+	dirMode  os.FileMode = 0755
 )
 
 func configRouter() http.Handler {
@@ -108,6 +117,7 @@ func updateConfigs(w http.ResponseWriter, r *http.Request) {
 	force := r.URL.Query().Get("force") == "true"
 	var cfg *config.Config
 	var err error
+	backupCfgBuff := config.CurrentCfgBuff
 
 	if req.Payload != "" {
 		cfg, err = executor.ParseWithBytes([]byte(req.Payload))
@@ -116,6 +126,19 @@ func updateConfigs(w http.ResponseWriter, r *http.Request) {
 			render.JSON(w, r, newError(err.Error()))
 			return
 		}
+		msg, err := saveConfig(config.InitOverwrite, config.BackupCfg, []byte(req.Payload), backupCfgBuff)
+		if err != nil {
+			render.Status(r, http.StatusBadRequest)
+			render.JSON(w, r, newError(err.Error()))
+			return
+		}
+		render.Status(r, http.StatusOK)
+		render.JSON(w, r, render.M{
+			"message": msg,
+		})
+		executor.ApplyConfig(cfg, force)
+
+		return
 	} else {
 		if req.Path == "" {
 			req.Path = constant.Path.Config()
@@ -133,7 +156,68 @@ func updateConfigs(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-
 	executor.ApplyConfig(cfg, force)
 	render.NoContent(w, r)
+}
+
+func saveConfig(allowOverwrite, backupCfg bool, updatedBuff, backupBuff []byte) (string, error) {
+	var err error
+	overWriteDone := false
+	backupDone := false
+	configPath := constant.Path.Config()
+	backupPath := filepath.Join(constant.Path.HomeDir(), "cfgBackup", fmt.Sprintf("config-%d.yaml", time.Now().Unix()))
+	if allowOverwrite {
+		err = safeWrite(configPath, updatedBuff)
+		if err != nil {
+			return "", fmt.Errorf("overwrite config file with %s\n", err.Error())
+		}
+		overWriteDone = true
+	} else {
+		return "", fmt.Errorf("no allow to modify config file\n")
+	}
+
+	if backupCfg {
+		err = safeWrite(backupPath, backupBuff)
+		if err != nil {
+			return "", fmt.Errorf("fail to backup config file, error: %s\n", err.Error())
+		}
+		backupDone = true
+	}
+
+	if overWriteDone {
+		if backupDone {
+			return fmt.Sprintf("overwrite config file: %s and backup config to %s\n", configPath, backupPath), nil
+		} else {
+			return fmt.Sprintf("overwrite config file: %s, no backup config file\n", configPath), nil
+		}
+	}
+	return "", fmt.Errorf("no config file was ovewrite")
+}
+
+//func overwriteConfig (cfg []byte) error {
+//	path := filepath.Join("/tmp", "updatedCfg.yaml")
+//	log.Infoln("updated path: %s", path)
+//	return safeWrite(path, cfg)
+//	//return safeWrite(constant.Path.Config(), cfg)
+//
+//}
+
+//func writeBackupCfg (backCfg []byte) error {
+//	//path := filepath.Join(constant.Path.HomeDir(), name, fmt.Sprintf("%d.yaml",time.Now().Unix()))
+//	path := filepath.Join("/tmp", "lastCfg.yaml")
+//	log.Infoln("backup path: %s", path)
+//	return safeWrite(path, backCfg)
+//	return nil
+//}
+
+func safeWrite(path string, buf []byte) error {
+	dir := filepath.Dir(path)
+
+	if _, err := os.Stat(dir); os.IsNotExist(err) {
+		if err := os.MkdirAll(dir, dirMode); err != nil {
+			return err
+		}
+	}
+
+	return ioutil.WriteFile(path, buf, fileMode)
 }

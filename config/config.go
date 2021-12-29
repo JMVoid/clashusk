@@ -52,6 +52,8 @@ type Controller struct {
 	ExternalController string `json:"-"`
 	ExternalUI         string `json:"-"`
 	Secret             string `json:"-"`
+	AllowOverWrite     bool   `json:"-"`
+	BackupCfg          bool   `json:"-"`
 }
 
 // DNS config
@@ -136,6 +138,8 @@ type RawConfig struct {
 	ExternalUI         string       `yaml:"external-ui"`
 	Secret             string       `yaml:"secret"`
 	Interface          string       `yaml:"interface-name"`
+	AllowOverWrite     bool         `yaml:"allowOverwrite"`
+	BackupCfg          bool         `yaml:"backupCfg"`
 
 	ProxyProvider map[string]map[string]interface{} `yaml:"proxy-providers"`
 	Hosts         map[string]string                 `yaml:"hosts"`
@@ -263,6 +267,8 @@ func parseGeneral(cfg *RawConfig) (*General, error) {
 			ExternalController: cfg.ExternalController,
 			ExternalUI:         cfg.ExternalUI,
 			Secret:             cfg.Secret,
+			AllowOverWrite:     cfg.AllowOverWrite,
+			BackupCfg:          cfg.BackupCfg,
 		},
 		Mode:      cfg.Mode,
 		LogLevel:  cfg.LogLevel,

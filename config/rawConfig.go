@@ -5,10 +5,13 @@ import (
 )
 
 var (
-	GlobalObject interface{}
+	GlobalObject   interface{}
+	CurrentCfgBuff []byte
+	InitOverwrite  bool
+	BackupCfg      bool
 )
 
-func jsonConverter(input interface{}) interface{}  {
+func jsonConverter(input interface{}) interface{} {
 	switch it := input.(type) {
 	case map[interface{}]interface{}:
 		m2 := map[string]interface{}{}
@@ -24,7 +27,8 @@ func jsonConverter(input interface{}) interface{}  {
 	return input
 }
 
-func JsonRawConfig(ymlBuf []byte) error  {
+func JsonRawConfig(ymlBuf []byte) error {
+	CurrentCfgBuff = ymlBuf
 	var um interface{}
 	err := yaml.Unmarshal(ymlBuf, &um)
 	if err != nil {

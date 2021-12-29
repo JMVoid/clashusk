@@ -44,7 +44,8 @@ func Parse(options ...Option) error {
 	if cfg.General.ExternalController != "" {
 		go route.Start(cfg.General.ExternalController, cfg.General.Secret)
 	}
-
+	config.InitOverwrite = cfg.General.AllowOverWrite
+	config.BackupCfg = cfg.General.BackupCfg
 	executor.ApplyConfig(cfg, true)
 	return nil
 }
