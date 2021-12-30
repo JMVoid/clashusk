@@ -18,8 +18,6 @@ import (
 	"time"
 )
 
-const name = "clashusk-backup"
-
 var (
 	fileMode os.FileMode = 0666
 	dirMode  os.FileMode = 0755
@@ -55,7 +53,6 @@ func pointerOrDefault(p *int, def int) int {
 	if p != nil {
 		return *p
 	}
-
 	return def
 }
 
@@ -117,8 +114,7 @@ func updateConfigs(w http.ResponseWriter, r *http.Request) {
 	force := r.URL.Query().Get("force") == "true"
 	var cfg *config.Config
 	var err error
-	backupCfgBuff := config.CurrentCfgBuff
-
+	backupCfgBuff := config.GlobalHusk.CurrentCfgBuff
 	if req.Payload != "" {
 		cfg, err = executor.ParseWithBytes([]byte(req.Payload))
 		if err != nil {
@@ -126,7 +122,7 @@ func updateConfigs(w http.ResponseWriter, r *http.Request) {
 			render.JSON(w, r, newError(err.Error()))
 			return
 		}
-		msg, err := saveConfig(config.InitOverwrite, config.BackupCfg, []byte(req.Payload), backupCfgBuff)
+		msg, err := saveConfig(config.GlobalHusk.AllowOverWrite, config.GlobalHusk.IsBackupCfg, []byte(req.Payload), backupCfgBuff)
 		if err != nil {
 			render.Status(r, http.StatusBadRequest)
 			render.JSON(w, r, newError(err.Error()))
@@ -194,22 +190,6 @@ func saveConfig(allowOverwrite, backupCfg bool, updatedBuff, backupBuff []byte) 
 	return "", fmt.Errorf("no config file was ovewrite")
 }
 
-//func overwriteConfig (cfg []byte) error {
-//	path := filepath.Join("/tmp", "updatedCfg.yaml")
-//	log.Infoln("updated path: %s", path)
-//	return safeWrite(path, cfg)
-//	//return safeWrite(constant.Path.Config(), cfg)
-//
-//}
-
-//func writeBackupCfg (backCfg []byte) error {
-//	//path := filepath.Join(constant.Path.HomeDir(), name, fmt.Sprintf("%d.yaml",time.Now().Unix()))
-//	path := filepath.Join("/tmp", "lastCfg.yaml")
-//	log.Infoln("backup path: %s", path)
-//	return safeWrite(path, backCfg)
-//	return nil
-//}
-
 func safeWrite(path string, buf []byte) error {
 	dir := filepath.Dir(path)
 
@@ -218,6 +198,5 @@ func safeWrite(path string, buf []byte) error {
 			return err
 		}
 	}
-
 	return ioutil.WriteFile(path, buf, fileMode)
 }
