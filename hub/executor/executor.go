@@ -62,7 +62,13 @@ func ParseWithPath(path string) (*config.Config, error) {
 
 // ParseWithBytes config with buffer
 func ParseWithBytes(buf []byte) (*config.Config, error) {
-	return config.Parse(buf)
+
+	cfg, err := config.Parse(buf)
+	if err != nil {
+		return cfg, err
+	}
+	config.JsonRawConfig(buf)
+	return cfg, err
 }
 
 // ApplyConfig dispatch configure to all parts
